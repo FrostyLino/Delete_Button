@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 type FailureOs = "windows" | "mac" | "other";
+type ErrorScreen = "windows" | "mac";
 
 const buttonWidth = 144;
 
@@ -81,14 +82,24 @@ function detectOs(): FailureOs {
   return "other";
 }
 
+function detectNativeErrorScreen(): ErrorScreen {
+  return detectOs() === "mac" ? "mac" : "windows";
+}
+
 export function DeleteButtonDemo() {
   const [overstateOpen, setOverstateOpen] = useState(false);
   const [confirmationStep, setConfirmationStep] = useState(0);
   const [overstateCuts, setOverstateCuts] = useState(0);
   const [shaking, setShaking] = useState(false);
-  const [failureOs, setFailureOs] = useState<FailureOs | null>(null);
+  const [failureOs, setFailureOs] = useState<ErrorScreen | null>(null);
+  const [selectedErrorScreen, setSelectedErrorScreen] =
+    useState<ErrorScreen>("windows");
 
   useEffect(() => {
+    const detectionTimer = window.setTimeout(() => {
+      setSelectedErrorScreen(detectNativeErrorScreen());
+    }, 0);
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOverstateOpen(false);
@@ -97,7 +108,10 @@ export function DeleteButtonDemo() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.clearTimeout(detectionTimer);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   function startScreenShake() {
@@ -140,7 +154,7 @@ export function DeleteButtonDemo() {
           />
           <DeleteButton
             visibleWidth={buttonWidth}
-            onClick={() => setFailureOs(detectOs())}
+            onClick={() => setFailureOs(selectedErrorScreen)}
             variant="quiet"
           />
         </div>
@@ -155,6 +169,11 @@ export function DeleteButtonDemo() {
         <Info className="size-4" aria-hidden="true" />
       </Link>
 
+      <ErrorScreenSelector
+        value={selectedErrorScreen}
+        onChange={setSelectedErrorScreen}
+      />
+
       {overstateOpen ? (
         <OverstatementDialogs
           activeStep={confirmationStep}
@@ -167,6 +186,39 @@ export function DeleteButtonDemo() {
         <SystemFailureScreen os={failureOs} onReset={() => setFailureOs(null)} />
       ) : null}
     </main>
+  );
+}
+
+function ErrorScreenSelector({
+  value,
+  onChange,
+}: {
+  value: ErrorScreen;
+  onChange: (value: ErrorScreen) => void;
+}) {
+  return (
+    <div
+      className="fixed bottom-4 right-4 inline-flex rounded-full border border-zinc-200 bg-white/80 p-1 shadow-sm backdrop-blur-sm"
+      aria-label="Error screen selector"
+    >
+      {(["windows", "mac"] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => onChange(option)}
+          className={`h-6 min-w-9 rounded-full px-2 text-[11px] font-medium transition focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 ${
+            value === option
+              ? "bg-zinc-900 text-white"
+              : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+          }`}
+          aria-pressed={value === option}
+          aria-label={`${option === "windows" ? "Windows" : "macOS"} error screen`}
+          title={`${option === "windows" ? "Windows" : "macOS"} error screen`}
+        >
+          {option === "windows" ? "Win" : "Mac"}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -321,7 +373,7 @@ function SystemFailureScreen({
   os,
   onReset,
 }: {
-  os: FailureOs;
+  os: ErrorScreen;
   onReset: () => void;
 }) {
   if (os === "mac") {
@@ -335,7 +387,7 @@ function WindowsFailureScreen({
   os,
   onReset,
 }: {
-  os: FailureOs;
+  os: ErrorScreen;
   onReset: () => void;
 }) {
   return (
@@ -385,34 +437,81 @@ function WindowsFailureScreen({
 
 function MacFailureScreen({ onReset }: { onReset: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#111] px-4 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14),transparent_34%),linear-gradient(125deg,rgba(255,255,255,0.12),transparent_28%,rgba(0,0,0,0.6)_70%)]" />
-      <div className="absolute inset-0 backdrop-blur-[1px]" />
-      <div className="relative w-full max-w-[420px] rounded-lg border border-white/20 bg-[#2c2c2e]/95 p-5 text-center shadow-2xl shadow-black/70">
-        <div className="mx-auto mb-4 grid size-16 place-items-center rounded-md border border-yellow-100/70 bg-yellow-400 text-white shadow-lg shadow-black/30">
-          <AlertTriangle className="size-10" aria-hidden="true" />
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#111311] px-4 text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.08),transparent_28%),linear-gradient(110deg,rgba(255,255,255,0.04),transparent_36%,rgba(0,0,0,0.35)_78%)]" />
+      <div className="relative w-full max-w-[560px] rounded-[16px] border border-[#6c7172] bg-[#2b3030]/96 px-8 pb-6 pt-10 text-center shadow-[0_26px_70px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <button
+          type="button"
+          aria-label="Help"
+          className="absolute right-6 top-6 grid size-8 place-items-center rounded-full bg-[#7f8585] text-[22px] font-semibold leading-none text-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
+        >
+          ?
+        </button>
+
+        <div className="mx-auto mb-9 grid size-[88px] place-items-center">
+          <svg
+            viewBox="0 0 96 86"
+            className="size-[88px] drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]"
+            aria-hidden="true"
+          >
+            <path
+              d="M48 5.5 91 80.5H5L48 5.5Z"
+              fill="#f6c51a"
+              stroke="#f4f4ef"
+              strokeWidth="7"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M48 28V54"
+              stroke="#fff7d4"
+              strokeWidth="8"
+              strokeLinecap="round"
+            />
+            <circle cx="48" cy="67" r="5.2" fill="#fff7d4" />
+          </svg>
         </div>
-        <h2 className="mx-auto max-w-[300px] text-base font-semibold leading-5 text-white">
+
+        <h2 className="mx-auto max-w-[420px] text-[23px] font-[800] leading-[1.18] tracking-[-0.01em] text-white">
           The version of macOS on the selected disk has been deleted permanently.
         </h2>
-        <p className="mx-auto mt-3 max-w-[310px] text-sm font-medium leading-5 text-zinc-100">
+        <p className="mx-auto mt-5 max-w-[440px] text-[19px] font-semibold leading-6 text-[#898f8f]">
           Recovery found no startup disk, no snapshots, and no remaining chance
           of recoverability.
         </p>
-        <div className="mt-6 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            className="h-9 rounded-md border border-white/15 bg-white/15 px-3 text-sm font-medium text-zinc-200"
-          >
-            Startup Disk...
-          </button>
+
+        <div className="mx-auto mt-7 grid max-w-[376px] gap-2">
           <button
             type="button"
             onClick={onReset}
-            className="h-9 rounded-md border border-sky-300/40 bg-[#0a84ff] px-3 text-sm font-medium text-white shadow-sm shadow-black/30 transition hover:bg-[#2997ff]"
+            className="h-[47px] rounded-[8px] border border-[#0e6fd1] bg-[linear-gradient(#2f9bfd,#116bdc)] px-3 text-[21px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
           >
             Recovery...
           </button>
+          <button
+            type="button"
+            className="h-[47px] rounded-[8px] border border-[#777d7d] bg-[#737878] px-3 text-[21px] font-medium text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]"
+          >
+            Startup Disk...
+          </button>
+          <label className="mt-4 flex items-center gap-3 text-left text-[22px] font-semibold leading-none text-white">
+            <span className="grid size-[23px] place-items-center rounded-[6px] bg-[linear-gradient(#49a4ff,#1774df)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+              <svg
+                viewBox="0 0 18 18"
+                className="size-[17px]"
+                aria-hidden="true"
+              >
+                <path
+                  d="m4 9 3 3.4L14 5"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            Report malware to Apple to protect other users
+          </label>
         </div>
       </div>
     </div>
